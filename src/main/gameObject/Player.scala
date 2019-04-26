@@ -12,7 +12,6 @@ class Player(
               private val crouchMoveAnimation: Animation,
               private val moveAnimation: Animation
             ) extends GameObject(context, frame) {
-  private val originalSize: Size = frame.size.copy()
   var speed: Double = 0.0
   var jumpSpeed: Double = 0.0
   var power: Int = 0
@@ -20,17 +19,20 @@ class Player(
   var jumped: Boolean = false
   var health: Int = 100
   var dead: Boolean = false
-  var crouched: Boolean = false
+  var won: Boolean = false
 
-  private var _won: Boolean = false
-  def won: Boolean = _won
-  def won_=(value: Boolean): Unit = {
-    if (value && !won) {
-      _won = true
+  private val originalSize: Size = frame.size.copy()
+  private var _crouched: Boolean = false
+
+  def crouched: Boolean = _crouched
+
+  def crouched_=(value: Boolean): Unit = {
+    if (value && !crouched) {
+      _crouched = true
       frame.center.y += originalSize.height / 4
       frame.size.height = originalSize.height / 2
-    } else if (!value && won) {
-      _won = false
+    } else if (!value && crouched) {
+      _crouched = false
       frame.center.y -= originalSize.height / 4
       frame.size.height = originalSize.height
     }
@@ -57,6 +59,7 @@ class Player(
       var moveLeft = false
       var moveRight = false
       val moveVector = Vector()
+      physics.foreach(p => moveVector.y = if (p.gravity) p.velocity.y else 0)
       if (keys.contains(KeyCode.LEFT) ||
         keys.contains(KeyCode.A)) {
         moveVector.x -= speed
@@ -74,7 +77,7 @@ class Player(
           moveVector.y -= speed
         }
         else if (physics.nonEmpty && !jumped) {
-          physics.get.velocity.y = physics.get.velocity.y - jumpSpeed
+          moveVector.y -= jumpSpeed
           jumped = true
         }
       }
@@ -106,22 +109,28 @@ class Player(
       else if ((moveLeft || moveRight) && !jumped && crouched) animation = Some(crouchMoveAnimation)
       else if (jumped && crouched) animation = Some(crouchAnimation)
       else if (jumped && !crouched) animation = Some(jumpAnimation)
-      frame.center += moveVector
+      if (physics.nonEmpty) {
+        physics.get.velocity = moveVector
+      }
     }
     super.handleKeyboardState(keys)
   }
 
   override def handleEnterCollision(collision: Collision) {
-    val consumable = collision.collider
-    if (consumable.isInstanceOf[Consumable]) {
-      power += 1
-      context.ui.powerBar.value = power.toDouble / maxPower.toDouble * 100.0
-      consumable.removed = true
-      speed += 0.01
-      jumpSpeed += 0.01
-      if (power >= maxPower) {
-        win()
-      }
+    collision.collider match {
+      case consumable: Consumable =>
+        power += 1
+        context.ui.powerBar.value = power.toDouble / maxPower.toDouble * 100.0
+        consumable.removed = true
+        speed += 0.01
+        jumpSpeed += 0.01
+        if (power >= maxPower) {
+          win()
+        }
+      case _: Solid =>
+        if (physics.nonEmpty && physics.get.velocity.y > 5) {
+          dealDamage(Math.round(physics.get.velocity.y * 10).toInt)
+        }
     }
   }
 
@@ -137,9 +146,18 @@ class Player(
   }
 
   override def handleCollision(collision: Collision) {
-    if (Math.abs(collision.collisionVector.x) > Math.abs(collision.collisionVector.y)) {
-      if (collision.collisionVector.y > 0 && jumped && physics.nonEmpty && physics.get.gravity) {
+    if (collision.collider.isInstanceOf[Solid]) {
+      if (Math.abs(collision.collisionVector.x) > Math.abs(collision.collisionVector.y)) {
+        if (collision.collisionVector.y > 0 && jumped && physics.nonEmpty && physics.get.gravity) {
         jumped = false
+        }
+      }
+      if (Math.abs(collision.collisionVector.x) < Math.abs(collision.collisionVector.y)) {
+        frame.center.x -= collision.collisionVector.x
+        physics.foreach(p => p.velocity.x = 0.0)
+      } else {
+        frame.center.y -= collision.collisionVector.y
+        physics.foreach(p => p.velocity.y = 0.0)
       }
     }
   }

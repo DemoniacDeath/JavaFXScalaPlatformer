@@ -19,6 +19,7 @@ abstract class GameObject(
   var removed: Boolean = false
 
   def frame: Rect = _frame
+
   def frame_=(f: Rect): Unit = _frame = f
 
   def handleKeyboardState(keys: Set[KeyCode]): Unit = {
@@ -30,7 +31,9 @@ abstract class GameObject(
   }
 
   def handleEnterCollision(collision: Collision): Unit = {}
+
   def handleExitCollision(collider: GameObject): Unit = {}
+
   def handleCollision(collision: Collision): Unit = {}
 
   def animate(now: Long): Unit = {
@@ -41,11 +44,11 @@ abstract class GameObject(
   }
 
   def render(
-    graphics: GraphicsContext,
-    localBasis: Vector,
-    cameraPosition: Vector,
-    cameraSize: Size
-  ) {
+              graphics: GraphicsContext,
+              localBasis: Vector,
+              cameraPosition: Vector,
+              cameraSize: Size
+            ) {
     if (visible && renderObject.nonEmpty) {
       renderObject.get.render(
         graphics,
@@ -64,13 +67,13 @@ abstract class GameObject(
     )
   }
 
-  def processPhysics () {
-    physics.foreach(p => p.change() )
+  def processPhysics() {
+    physics.foreach(p => p.change())
     for (child <- children) child.processPhysics()
   }
 
-  def detectCollisions () {
-    val allColliders = new ListBuffer[GameObject] ()
+  def detectCollisions() {
+    val allColliders = new ListBuffer[GameObject]()
     detectCollisions(allColliders)
     val size = allColliders.size
     for (i <- 0 until size) {
@@ -83,18 +86,18 @@ abstract class GameObject(
     }
   }
 
-  private def detectCollisions (allColliders: ListBuffer[GameObject]) {
+  private def detectCollisions(allColliders: ListBuffer[GameObject]) {
     if (physics != null) allColliders += this
 
     for (child <- children) child.detectCollisions(allColliders)
   }
 
-  def addChild (child: GameObject) {
+  def addChild(child: GameObject) {
     children += child
     child.parent = Some(this)
   }
 
-  def clean () {
+  def clean() {
     for (child <- children) child.physics.foreach(p => p.clean())
     for (child <- children) {
       if (child.removed) {

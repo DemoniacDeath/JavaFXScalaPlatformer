@@ -12,6 +12,7 @@ class Animation(
   private var _turnedLeft = false
 
   def turnedLeft: Boolean = _turnedLeft
+
   def turnedLeft_=(value: Boolean): Unit = {
     _turnedLeft = value
 

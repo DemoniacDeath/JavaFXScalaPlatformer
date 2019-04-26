@@ -110,6 +110,7 @@ class Game(size: Size, val exitHandler: () => Unit) {
     context.ui.winText.visible = false
 
   }
+
   init()
 
   def keyDown(keyCode: KeyCode) {

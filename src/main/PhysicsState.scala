@@ -17,7 +17,9 @@ class PhysicsState(val gameObject: GameObject) {
   }
 
   def clean() {
-    colliders.retain(c => { !c.removed })
+    colliders.retain(c => {
+      !c.removed
+    })
   }
 
   def detectCollisions(c: PhysicsState) {
